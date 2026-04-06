@@ -1,60 +1,72 @@
 ﻿using MauiAppTempoAgora.Models;
 using MauiAppTempoAgora.Services;
+using Microsoft.Maui.Networking;
 
 namespace MauiAppTempoAgora
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
-
         public MainPage()
         {
             InitializeComponent();
         }
 
-        
-
         private async void Button_Clicked(object sender, EventArgs e)
         {
             try
             {
-                if (!string.IsNullOrEmpty(txt_cidade.Text))
+                // 🔹 Verifica se o campo está vazio
+                if (string.IsNullOrWhiteSpace(txt_cidade.Text))
                 {
-                    Tempo? t = await DataService.GetPrevisao(txt_cidade.Text);
-
-                    if (t != null)
-                    {
-                        string dados_previsao = "";
-
-                        dados_previsao = //$"Latitude: {t.lat} \n" +
-                                         //$"Longitude: {t.lon} \n" +
-                                         $"Tempo: {t.main}  \n" +
-                                         $"Descrição: {t.description}  \n" +
-                                         $"Temperatura: {t.temp}  \n" +
-                                         //$"Temp Máx: {t.temp_max}   \n" +
-                                         //$"Temp Min: {t.temp_min}   \n" +
-                                         //$"Sensação: {t.feels_like}   \n" +
-                                         $"Visibilidade: {t.visibility}   \n" +
-                                         $"Velocidade do vento: {t.speed}   \n";
-
-                        lbl_res.Text = dados_previsao;
-
-                    }
-                    else 
-                    {
-                        lbl_res.Text = "Sem dados de previsão";
-                    }
+                    await DisplayAlert(
+                        "Atenção",
+                        "Preencha o nome da cidade.",
+                        "OK");
+                    return;
                 }
-                else
-                { 
-                    lbl_res.Text = "Preencha a cidade.";
+
+                // 🔹 Verifica conexão com internet
+                if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+                {
+                    await DisplayAlert(
+                        "Sem conexão",
+                        "Verifique sua conexão com a internet.",
+                        "OK");
+                    return;
                 }
+
+                // 🔹 Chama o serviço
+                Tempo? t = await DataService.GetPrevisao(txt_cidade.Text);
+
+                // 🔹 Cidade não encontrada ou erro
+                if (t == null)
+                {
+                    await DisplayAlert(
+                        "Cidade não encontrada",
+                        "Verifique o nome digitado.",
+                        "OK");
+
+                    lbl_res.Text = "";
+                    return;
+                }
+
+                // 🔹 Monta resultado
+                string dados_previsao =
+                    $"Tempo: {t.main}  \n" +
+                    $"Descrição: {t.description}  \n" +
+                    $"Temperatura: {t.temp}°C  \n" +
+                    $"Visibilidade: {t.visibility}  \n" +
+                    $"Velocidade do vento: {t.speed} m/s";
+
+                lbl_res.Text = dados_previsao;
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Ops", ex.Message, "Ok");
+                await DisplayAlert(
+                    "Erro",
+                    ex.Message,
+                    "OK");
             }
         }
     }
-
 }
